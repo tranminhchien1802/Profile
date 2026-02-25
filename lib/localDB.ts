@@ -167,6 +167,13 @@ class LocalStorageDB {
   }
 
   /**
+   * Lấy danh sách availabilities
+   */
+  getAvailabilities(): Availability[] {
+    return this.get<Availability>('dating_availabilities');
+  }
+
+  /**
    * Lưu availability, replace availability cũ của cùng 1 user trong match
    */
   saveAvailability(availability: Availability): void {
