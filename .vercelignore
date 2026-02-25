@@ -1,6 +1,5 @@
 # Vercel ignore file
 .git
-node_modules
-.next
+.github
 .vscode
-*.md
+*.log
