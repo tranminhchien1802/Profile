@@ -3,3 +3,6 @@
 .github
 .vscode
 *.log
+lib/models/
+lib/mongodb.ts
+scripts/seed.ts
