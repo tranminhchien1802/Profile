@@ -11,6 +11,7 @@ interface MatchWithUser {
   id: string;
   status: 'pending' | 'scheduled' | 'completed';
   scheduledDate?: string;
+  createdAt: string;
   otherUser: {
     id: string;
     name: string;
@@ -85,29 +86,27 @@ export default function MatchesPage() {
       const profiles: any[] = profilesJson ? JSON.parse(profilesJson) : [];
 
       // Format matches with other user info
-      const formattedMatches = userMatches.map(match => {
-        const otherUserId = match.userAId === myProfileId ? match.userBId : match.userAId;
-        
-        // Filter out matches where other user is the same as current user (invalid match)
-        if (otherUserId === myProfileId) {
-          return null;
-        }
-        
-        const otherUser = profiles.find(p => p.id === otherUserId);
+      const formattedMatches = userMatches
+        .map(match => {
+          const otherUserId = match.userAId === myProfileId ? match.userBId : match.userAId;
+          const otherUser = profiles.find(p => p.id === otherUserId);
 
-        return {
-          id: match.id,
-          status: match.status,
-          scheduledDate: match.scheduledDate,
-          createdAt: match.createdAt,
-          otherUser: otherUser ? {
-            id: otherUser.id,
-            name: otherUser.name,
-            email: otherUser.email,
-            avatar: otherUser.avatar,
-          } : null,
-        };
-      }).filter(match => match !== null && match.otherUser !== null);
+          if (!otherUser) return null;
+
+          return {
+            id: match.id,
+            status: match.status,
+            scheduledDate: match.scheduledDate,
+            createdAt: match.createdAt,
+            otherUser: {
+              id: otherUser.id,
+              name: otherUser.name,
+              email: otherUser.email,
+              avatar: otherUser.avatar,
+            },
+          };
+        })
+        .filter(match => match !== null);
 
       setMatches(formattedMatches);
     } catch (error) {
