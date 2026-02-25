@@ -86,7 +86,7 @@ export default function MatchesPage() {
       const profiles: any[] = profilesJson ? JSON.parse(profilesJson) : [];
 
       // Format matches with other user info
-      const formattedMatches = userMatches
+      const formattedMatches: MatchWithUser[] = userMatches
         .map(match => {
           const otherUserId = match.userAId === myProfileId ? match.userBId : match.userAId;
           const otherUser = profiles.find(p => p.id === otherUserId);
@@ -104,9 +104,9 @@ export default function MatchesPage() {
               email: otherUser.email,
               avatar: otherUser.avatar,
             },
-          };
+          } as MatchWithUser;
         })
-        .filter(match => match !== null);
+        .filter((match): match is MatchWithUser => match !== null);
 
       setMatches(formattedMatches);
     } catch (error) {
