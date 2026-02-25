@@ -61,11 +61,10 @@ export default function MatchesPage() {
     }
   };
 
-  const loadMatches = async () => {
+  const loadMatches = () => {
     try {
-      // Load matches directly from localStorage
       const matchesJson = localStorage.getItem('dating_matches');
-      const matches: any[] = matchesJson ? JSON.parse(matchesJson) : [];
+      const matchesData: any[] = matchesJson ? JSON.parse(matchesJson) : [];
       
       const currentUserJson = localStorage.getItem('dating_current_user');
       if (!currentUserJson) {
@@ -73,21 +72,18 @@ export default function MatchesPage() {
         return;
       }
       
-      const currentUser = JSON.parse(currentUserJson);
-      const myProfileId = currentUser.id;
+      const currentUserObj = JSON.parse(currentUserJson);
+      const myProfileId = currentUserObj.id;
 
-      // Filter matches for current user
-      const userMatches = matches.filter(m =>
+      const userMatches = matchesData.filter(m =>
         m.userAId === myProfileId || m.userBId === myProfileId
       );
 
-      // Load profiles to get other user info
       const profilesJson = localStorage.getItem('dating_profiles');
       const profiles: any[] = profilesJson ? JSON.parse(profilesJson) : [];
 
-      // Format matches with other user info
       const formattedMatches: MatchWithUser[] = [];
-      userMatches.forEach(match => {
+      userMatches.forEach((match: any) => {
         const otherUserId = match.userAId === myProfileId ? match.userBId : match.userAId;
         const otherUser = profiles.find(p => p.id === otherUserId);
 
@@ -116,9 +112,8 @@ export default function MatchesPage() {
     }
   };
 
-  const loadAvailabilities = async (matchId: string) => {
+  const loadAvailabilities = (matchId: string) => {
     try {
-      // Load availabilities directly from localStorage
       const availabilitiesJson = localStorage.getItem('dating_availabilities');
       const availabilities: any[] = availabilitiesJson ? JSON.parse(availabilitiesJson) : [];
 
@@ -158,7 +153,7 @@ export default function MatchesPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSaveAvailability = async (e: React.FormEvent) => {
+  const handleSaveAvailability = (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedMatch || !currentUser) return;
@@ -171,14 +166,12 @@ export default function MatchesPage() {
     try {
       const { date, startTime, endTime } = availabilityForm;
 
-      // Validate thời gian
       if (startTime >= endTime) {
         showError('Giờ bắt đầu phải trước giờ kết thúc');
         setSaving(false);
         return;
       }
 
-      // Tạo availability
       const availability = {
         id: 'avail_' + Date.now(),
         matchId: selectedMatch.id,
@@ -189,18 +182,15 @@ export default function MatchesPage() {
         createdAt: new Date().toISOString(),
       };
 
-      // Lưu vào localStorage
       const availabilitiesJson = localStorage.getItem('dating_availabilities');
       const availabilities: any[] = availabilitiesJson ? JSON.parse(availabilitiesJson) : [];
       
-      // Remove old availability for this user in this match
       const filtered = availabilities.filter(a =>
         !(a.matchId === availability.matchId && a.userId === availability.userId)
       );
       filtered.push(availability);
       localStorage.setItem('dating_availabilities', JSON.stringify(filtered));
 
-      // Kiểm tra xem đối phương đã chọn availability chưa
       const matchesJson = localStorage.getItem('dating_matches');
       const matches: any[] = matchesJson ? JSON.parse(matchesJson) : [];
       const match = matches.find(m => m.id === selectedMatch.id);
@@ -217,13 +207,11 @@ export default function MatchesPage() {
       );
 
       if (otherAvailability) {
-        // Cả hai đã chọn, tìm slot trùng
         if (availability.date === otherAvailability.date) {
           const commonStart = availability.startTime > otherAvailability.startTime ? availability.startTime : otherAvailability.startTime;
           const commonEnd = availability.endTime < otherAvailability.endTime ? availability.endTime : otherAvailability.endTime;
 
           if (commonStart < commonEnd) {
-            // Tìm thấy slot trùng
             const commonSlot = { date: availability.date, startTime: commonStart, endTime: commonEnd };
             
             setMatchResult({
@@ -234,10 +222,9 @@ export default function MatchesPage() {
             });
             showSuccess('Chúc mừng! Hai bạn đã tìm được lịch hẹn phù hợp');
 
-            // Cập nhật match với scheduled date
             const updatedMatches = matches.map(m => {
               if (m.id === selectedMatch.id) {
-                return { ...m, status: 'scheduled', scheduledDate: `${commonSlot.startTime} - ${commonSlot.endTime}` };
+                return { ...m, status: 'scheduled' as const, scheduledDate: `${commonSlot.startTime} - ${commonSlot.endTime}` };
               }
               return m;
             });
@@ -279,21 +266,21 @@ export default function MatchesPage() {
   const getNextThreeWeeksDates = () => {
     const dates: { value: string; label: string; isWeekend: boolean }[] = [];
     const today = new Date();
-    
+
     for (let i = 1; i <= 21; i++) {
       const date = new Date(today);
       date.setDate(today.getDate() + i);
       const value = date.toISOString().split('T')[0];
       const dayOfWeek = date.getDay();
       const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-      const label = date.toLocaleDateString('vi-VN', { 
-        weekday: 'short', 
-        day: 'numeric', 
-        month: 'numeric' 
+      const label = date.toLocaleDateString('vi-VN', {
+        weekday: 'short',
+        day: 'numeric',
+        month: 'numeric'
       });
       dates.push({ value, label, isWeekend });
     }
-    
+
     return dates;
   };
 
@@ -361,7 +348,7 @@ export default function MatchesPage() {
               </svg>
               Danh sách Matches
             </h2>
-            
+
             {loading ? (
               <div className="space-y-4">
                 {[...Array(3)].map((_, i) => (
@@ -415,8 +402,8 @@ export default function MatchesPage() {
                           </h3>
                           <span className={`
                             text-xs px-2 py-1 rounded-full font-medium
-                            ${match.status === 'scheduled' 
-                              ? 'bg-green-100 text-green-700' 
+                            ${match.status === 'scheduled'
+                              ? 'bg-green-100 text-green-700'
                               : 'bg-amber-100 text-amber-700'}
                           `}>
                             {match.status === 'scheduled' ? '✓ Đã lên lịch' : '⏳ Chưa lên lịch'}
@@ -479,8 +466,8 @@ export default function MatchesPage() {
                     </p>
                     <span className={`
                       inline-block mt-2 text-xs px-2 py-1 rounded-full font-medium
-                      ${selectedMatch.status === 'scheduled' 
-                        ? 'bg-green-100 text-green-700' 
+                      ${selectedMatch.status === 'scheduled'
+                        ? 'bg-green-100 text-green-700'
                         : 'bg-amber-100 text-amber-700'}
                     `}>
                       {selectedMatch.status === 'scheduled' ? '✓ Đã lên lịch' : '⏳ Chưa lên lịch'}
@@ -491,8 +478,8 @@ export default function MatchesPage() {
                 {/* Kết quả match date */}
                 {matchResult && (
                   <div className={`mb-6 rounded-lg p-4 border ${
-                    matchResult.success 
-                      ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' 
+                    matchResult.success
+                      ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200'
                       : 'bg-gradient-to-r from-red-50 to-rose-50 border-red-200'
                   }`}>
                     <p className={`font-medium ${matchResult.success ? 'text-green-800' : 'text-red-800'}`}>
@@ -654,7 +641,7 @@ export default function MatchesPage() {
                       ) : (
                         <>
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
                           Lưu thời gian rảnh
                         </>
@@ -670,7 +657,7 @@ export default function MatchesPage() {
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-100 mt-12 py-6">
-        <div className="text-center text-gray-500 text-sm">
+        <div className="max-w-6xl mx-auto px-4 text-center text-gray-500 text-sm">
           <p>Dating App © 2024</p>
           <p className="text-xs mt-1">Kết nối chân thành - Yêu thương bền vững</p>
         </div>
