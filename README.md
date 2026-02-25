@@ -1,36 +1,483 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 💕 Dating App - Ứng dụng Hẹn hò
 
-## Getting Started
+Ứng dụng hẹn hò đơn giản, hiện đại được xây dựng với **Next.js 16**, **TypeScript** và **Tailwind CSS**.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 📑 Mục lục
+
+1. [Cách tổ chức hệ thống](#-1-cách-tổ-chức-hệ-thống)
+2. [Cách lưu dữ liệu](#-2-cách-lưu-dữ-liệu)
+3. [Logic Match](#-3-logic-match)
+4. [Logic tìm slot trùng](#-4-logic-tìm-slot-trùng)
+5. [Cải thiện trong tương lai](#-5-cải-thiện-trong-tương-lai)
+6. [Tính năng đề xuất](#-6-tính-năng-đề-xuất)
+
+---
+
+## 🏗 1. Cách tổ chức hệ thống
+
+### 📁 Cấu trúc thư mục
+
+```
+mini-dating-app/
+│
+├── 📂 app/                          # Ứng dụng chính
+│   ├── 📂 api/                      # API Routes (Server-side)
+│   │   ├── 📂 auth/                 # Xác thực người dùng
+│   │   ├── 📄 profiles/route.ts     # Lấy danh sách profiles
+│   │   ├── 📄 likes/route.ts        # Xử lý like
+│   │   └── 📂 matches/              # Quản lý matches
+│   │
+│   ├── 📂 components/               # React Components
+│   │   └── 📄 ToastProvider.tsx     # Thông báo toast
+│   │
+│   ├── 📂 login/                    # Trang đăng ký/đăng nhập
+│   ├── 📂 browse/                   # Trang duyệt profiles
+│   ├── 📂 matches/                  # Trang matches & lên lịch
+│   ├── 📂 seed/                     # Trang tạo dữ liệu mẫu
+│   └── 📄 page.tsx                  # Trang chủ
+│
+├── 📂 lib/                          # Thư viện tiện ích
+│   └── 📄 localDB.ts                # Helper cho LocalStorage
+│
+└── 📄 README.md                     # Tài liệu
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 🔄 Luồng hoạt động
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+┌──────────────────────────────────────────────────────────────┐
+│                        TRANG CHỦ                              │
+│                    (Dating App Home)                          │
+└──────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┼───────────────┐
+              │               │               │
+              ▼               ▼               ▼
+    ┌─────────────────┐ ┌─────────────┐ ┌─────────────┐
+    │   /seed         │ │  /login     │ │  /browse    │
+    │   Tạo data mẫu  │ │  Đăng nhập  │ │  Duyệt &    │
+    │   (10 profiles) │ │  Tạo profile│ │  Like       │
+    └─────────────────┘ └─────────────┘ └──────┬──────┘
+                                               │
+                                               │ Match!
+                                               ▼
+                                      ┌─────────────────┐
+                                      │   /matches      │
+                                      │   Chọn lịch hẹn │
+                                      │   Tìm slot trùng│
+                                      └─────────────────┘
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 🎯 Các trang chính
 
-## Learn More
+| Trang | URL | Chức năng |
+|-------|-----|-----------|
+| **Home** | `/` | Giới thiệu, điều hướng |
+| **Seed** | `/seed` | Tạo 10 profiles mẫu |
+| **Login** | `/login` | Đăng ký/Đăng nhập |
+| **Browse** | `/browse` | Xem profiles, like |
+| **Matches** | `/matches` | Xem matches, lên lịch |
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 💾 2. Cách lưu dữ liệu
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 📦 Storage: **LocalStorage**
 
-## Deploy on Vercel
+Toàn bộ dữ liệu được lưu vào **LocalStorage** của trình duyệt.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### 🔑 Các keys lưu trữ
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+┌─────────────────────────────────────────────────────────┐
+│                   LocalStorage                           │
+├─────────────────────────────────────────────────────────┤
+│  🔹 dating_profiles        → Danh sách profiles         │
+│  🔹 dating_likes           → Danh sách likes            │
+│  🔹 dating_matches         → Danh sách matches          │
+│  🔹 dating_availabilities  → Thời gian rảnh             │
+│  🔹 dating_current_user    → User đang đăng nhập        │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 📊 Data Models
+
+**Profile** - Thông tin người dùng
+- `id` - Mã định danh
+- `name` - Họ tên
+- `age` - Tuổi
+- `gender` - Giới tính
+- `bio` - Giới thiệu bản thân
+- `email` - Email (dùng để đăng nhập)
+- `password` - Mật khẩu
+- `avatar` - Ảnh đại diện
+
+**Like** - Lượt thích
+- `fromUserId` - Người like
+- `toUserId` - Người được like
+
+**Match** - Khi 2 người cùng like nhau
+- `userAId` - Người thứ nhất
+- `userBId` - Người thứ hai
+- `status` - Trạng thái (pending/scheduled/completed)
+- `scheduledDate` - Ngày giờ hẹn
+
+**Availability** - Thời gian rảnh
+- `matchId` - Mã match
+- `userId` - Người chọn
+- `date` - Ngày
+- `startTime` - Giờ bắt đầu
+- `endTime` - Giờ kết thúc
+
+### ⚖️ Ưu & Nhược điểm
+
+| ✅ Ưu điểm | ❌ Nhược điểm |
+|------------|---------------|
+| Không cần backend | Dữ liệu chỉ trên 1 thiết bị |
+| Setup cực nhanh (5 phút) | Không đồng bộ đa thiết bị |
+| Miễn phí 100% | Không có real-time |
+| Dễ test, dễ debug | Bảo mật thấp |
+
+---
+
+## ❤️ 3. Logic Match
+
+### 🎯 Điều kiện tạo Match
+
+```
+╔═══════════════════════════════════════════════════════╗
+║                                                       ║
+║    User A like User B  +  User B like User A         ║
+║                                                       ║
+║                    ↓                                  ║
+║                                                       ║
+║              🎉 MATCH!                                ║
+║                                                       ║
+╚═══════════════════════════════════════════════════════╝
+```
+
+### 📋 Quy trình 4 bước
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  BƯỚC 1: User A click "Thích" profile User B            │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│  BƯỚC 2: Lưu Like vào LocalStorage                      │
+│  { fromUserId: A, toUserId: B }                         │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│  BƯỚC 3: Kiểm tra User B đã like User A chưa?           │
+│  - Tìm like: fromUserId: B, toUserId: A                 │
+└─────────────────────────────────────────────────────────┘
+                          │
+                    ┌─────┴─────┐
+                    │           │
+                   CÓ         KHÔNG
+                    │           │
+                    ▼           ▼
+          ┌─────────────┐ ┌──────────────┐
+          │  BƯỚC 4A:   │ │  BƯỚC 4B:    │
+          │  TẠO MATCH  │ │  Chờ User B  │
+          │  🎉         │ │  like lại    │
+          └─────────────┘ └──────────────┘
+```
+
+### 🔄 Flowchart
+
+```
+    ┌──────────────┐
+    │  User A like │
+    │  User B      │
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  Lưu Like    │
+    │  A → B       │
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐     Không      ┌──────────────┐
+    │  B đã like   │────────────────▶│  Hiển thị    │
+    │  A chưa?     │                │  "Đã thích"  │
+    └──────┬───────┘                └──────────────┘
+           │
+           │ Có
+           ▼
+    ┌──────────────┐
+    │  TẠO MATCH   │
+    │  A ↔ B       │
+    └──────┬───────┘
+           │
+           ▼
+    ┌──────────────┐
+    │  Thông báo   │
+    │  "🎉 Match!" │
+    └──────────────┘
+```
+
+---
+
+## 🕐 4. Logic tìm slot trùng
+
+### 🎯 Yêu cầu
+
+Sau khi match, cả 2 người chọn thời gian rảnh:
+
+- **User A chọn:** Ngày X, từ `A1` đến `A2`
+- **User B chọn:** Ngày X, từ `B1` đến `B2`
+- **Mục tiêu:** Tìm khoảng thời gian giao nhau
+
+### 📋 Algorithm 4 bước
+
+```
+┌─────────────────────────────────────────────────────────┐
+│  BƯỚC 1: Kiểm tra cùng ngày?                            │
+│  - Nếu khác ngày → ❌ Không tìm được                    │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│  BƯỚC 2: Tính giờ bắt đầu chung (commonStart)           │
+│  commonStart = MAX(A1, B1)                              │
+│  → Lấy giờ bắt đầu MUỘN HƠN                             │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│  BƯỚC 3: Tính giờ kết thúc chung (commonEnd)            │
+│  commonEnd = MIN(A2, B2)                                │
+│  → Lấy giờ kết thúc SỚM HƠN                             │
+└─────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌─────────────────────────────────────────────────────────┐
+│  BƯỚC 4: Kiểm tra valid?                                │
+│  commonStart < commonEnd ?                              │
+│  - Nếu CÓ → ✅ Tìm thấy slot trùng                      │
+│  - Nếu KHÔNG → ❌ Không có slot trùng                   │
+└─────────────────────────────────────────────────────────┘
+```
+
+### 📊 Ví dụ minh họa
+
+**Trường hợp 1: Có slot trùng ✅**
+
+```
+User A:  14:00 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 18:00
+                    ╔═══════════╗
+User B:        15:00 ║ 15:00-17:00║ 17:00
+                    ╚═══════════╝
+                    
+                    SLOT TRÙNG!
+```
+
+**Tính toán:**
+- `commonStart = MAX(14:00, 15:00) = 15:00`
+- `commonEnd = MIN(18:00, 17:00) = 17:00`
+- `15:00 < 17:00` → ✅ Valid
+
+---
+
+**Trường hợp 2: Không có slot trùng ❌**
+
+```
+User A:  09:00 ━━━━━━━━ 12:00
+                           
+User B:                    14:00 ━━━━━━━━━━━━ 18:00
+
+            KHÔNG GIAO NHAU!
+```
+
+**Tính toán:**
+- `commonStart = MAX(09:00, 14:00) = 14:00`
+- `commonEnd = MIN(12:00, 18:00) = 12:00`
+- `14:00 < 12:00` → ❌ Invalid
+
+---
+
+**Trường hợp 3: Khác ngày ❌**
+
+```
+User A:  25/02 - 14:00 đến 18:00
+User B:  26/02 - 14:00 đến 18:00
+
+            KHÁC NGÀY!
+```
+
+---
+
+### 🔄 Flowchart
+
+```
+         ┌─────────────────┐
+         │  Cả A và B đã   │
+         │  chọn giờ       │
+         └────────┬────────┘
+                  │
+                  ▼
+         ┌─────────────────┐
+         │  Cùng ngày?     │
+         └────────┬────────┘
+                  │
+           ┌──────┴──────┐
+           │             │
+          Có           Không
+           │             │
+           │             ▼
+           │      ┌──────────────┐
+           │      │ ❌ Khác ngày │
+           │      └──────────────┘
+           ▼
+    ┌─────────────────┐
+    │ commonStart =   │
+    │ MAX(startA,     │
+    │ startB)         │
+    └────────┬────────┘
+             │
+             ▼
+    ┌─────────────────┐
+    │ commonEnd =     │
+    │ MIN(endA, endB) │
+    └────────┬────────┘
+             │
+             ▼
+    ┌─────────────────┐     Không      ┌──────────────┐
+    │ commonStart <   │────────────────▶│ ❌ Không có  │
+    │ commonEnd?      │                │ slot trùng   │
+    └────────┬────────┘                └──────────────┘
+             │
+             │ Có
+             ▼
+    ┌─────────────────┐
+    │ ✅ Tìm thấy     │
+    │ slot trùng!     │
+    │ Hiển thị kết quả│
+    └─────────────────┘
+```
+
+---
+
+## 🚀 5. Cải thiện trong tương lai
+
+### 📌 1. Backend + Database thật
+
+| Vấn đề | Giải pháp | Lợi ích |
+|--------|-----------|---------|
+| Dữ liệu chỉ trên 1 thiết bị | MongoDB/PostgreSQL | Đồng bộ đa thiết bị |
+| Không có real-time | WebSocket/Socket.io | Match notification ngay lập tức |
+| Bảo mật thấp | Hash password (bcrypt) | An toàn hơn |
+
+---
+
+### 📌 2. Real-time Chat
+
+| Vấn đề | Giải pháp | Lợi ích |
+|--------|-----------|---------|
+| Sau match không biết nhắn gì | Built-in chat | Tăng tương tác |
+| Tỷ lệ unmatch cao | Conversation trước khi gặp | Giảm unmatch |
+
+---
+
+### 📌 3. Advanced Matching Algorithm
+
+| Vấn đề | Giải pháp | Lợi ích |
+|--------|-----------|---------|
+| Match dựa trên ngoại hình | Gợi ý theo sở thích, tính cách | Chất lượng match cao hơn |
+| Không có location | Match theo khoảng cách | Dễ gặp nhau hơn |
+
+---
+
+### 📌 4. Photo Upload & Verification
+
+| Vấn đề | Giải pháp | Lợi ích |
+|--------|-----------|---------|
+| Avatar hoạt hình | Upload ảnh thật | Tăng trust |
+| Fake photos | AI verification | Giảm catfishing |
+
+---
+
+### 📌 5. Video Call
+
+| Vấn đề | Giải pháp | Lợi ích |
+|--------|-----------|---------|
+| Gặp mặt lần đầu rủi ro | Video call trước | Verify người thật |
+| Không an toàn | Call trong app | An toàn hơn |
+
+---
+
+## 💡 6. Tính năng đề xuất
+
+### 🧊 1. Icebreaker Questions
+
+**❓ Vấn đề:**
+- 60% matches không nhắn tin vì không biết bắt đầu từ đâu
+- Conversation nhàm chán, nhanh tàn
+
+**💡 Giải pháp:**
+Hệ thống gợi ý câu hỏi sau khi match:
+- *"Nếu được đi du lịch 1 nơi, bạn sẽ đi đâu?"*
+- *"Món ăn bạn thích nhất là gì?"*
+- *"Hoạt động cuối tuần lý tưởng của bạn?"*
+
+**✅ Lợi ích:**
+- Giảm awkwardness
+- Tăng conversation rate
+- User dễ làm quen hơn
+
+---
+
+### 📍 2. Date Ideas Gợi ý
+
+**❓ Vấn đề:**
+- Khó quyết định đi đâu
+- Không biết địa điểm nào phù hợp
+
+**💡 Giải pháp:**
+Gợi ý địa điểm dựa trên:
+- ☕ Coffee shops gần cả 2
+- 🍽 Restaurants trong khu vực
+- 🎬 Activities (cinema, bowling, art gallery)
+
+**✅ Lợi ích:**
+- Giảm decision paralysis
+- Tăng conversion từ match → actual date
+- Có thể monetize qua partnerships
+
+---
+
+### 🛡️ 3. Safety Features
+
+**❓ Vấn đề:**
+- Lo lắng an toàn khi gặp người lạ
+- Không có ai biết mình đi đâu
+
+**💡 Giải pháp:**
+- 📤 **Share date details:** Gửi thông tin hẹn cho bạn thân
+- ⏰ **Check-in reminder:** Nhắc check-in sau date
+- 🆘 **Emergency button:** Nút khẩn cấp gọi nhanh
+- 🚫 **Report/Block:** Báo cáo user không phù hợp
+
+**✅ Lợi ích:**
+- An toàn là ưu tiên số 1
+- Tăng trust từ users (đặc biệt là nữ)
+- Compliance với regulations
+
+---
+
+## 📄 License
+
+MIT - Tự do sử dụng cho mục đích học tập và nghiên cứu.
+
+---
+
+**Made with ❤️ by Dating App Team**
+
+*Next.js 16 • TypeScript • Tailwind CSS • LocalStorage*
